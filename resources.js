@@ -1,24 +1,23 @@
 function charges() {
     return {
-        workingDay:{
-            items:
-            [
-                {time: "9:00 ~ 12:00", unitPrice: 30},
-                {time: "12:00~18:00",unitPrice:50},
-                {time:"18:00~20:00",unitPrice:80},
-                {time:"20:00~22:00",unitPrice:60}
+        'workingDay': {
+            items: [
+                {time: "9:00~12:00", unitPrice: 30},
+                {time: "12:00~18:00", unitPrice: 50},
+                {time: "18:00~20:00", unitPrice: 80},
+                {time: "20:00~22:00", unitPrice: 60}
             ],
-            discount:0.5
+            discount: 0.5
         },
-        offDay:{
-            items:[
-                {item:"9:00~12:00",unitPrice:40},
-                {items:"12:00~18:00",unitPrice:50},
-                {items:"18:00~22:00",unitPrice:60}
+        'offDay': {
+            items: [
+                {item: "9:00~12:00", unitPrice: 40},
+                {items: "12:00~18:00", unitPrice: 50},
+                {items: "18:00~22:00", unitPrice: 60}
             ],
-            discount:0.25
+            discount: 0.25
         }
     }
 }
 
-module.exports=charges;
+module.exports = charges();
