@@ -27,9 +27,9 @@ function isConflict(object, objects) {
         var unitStart = parseInt(objects[i].time.split("~")[0].split(":"));
         var unitEnd = parseInt(objects[i].time.split("~")[1].split(":"));
         if((object.place === objects[i].place) && (start >= unitStart && end <= unitEnd)) {
-                 return false;
+                 return true;
         }else{
-            return true;
+            return false;
         }
     }
 }
@@ -75,10 +75,10 @@ function buildCancelCharge(object) {
         if(objectString === unitString){
             details.charge=details.charge*details[i].order.discount;
             return true;
+        }else{
+            return false;
         }
     }
-
-    return false;
 }
 
 function main() {
@@ -97,10 +97,14 @@ function main() {
             conflict = isConflict(unitInput, details);
             console.log(legal,conflict);
             if (legal && conflict) {
-                var orderInfo=buildOrderType(unitInput);
-                var orderCharge=buildOrderCharge(orderInfo);
-                details.push(orderCharge);
-                console.log('Success: the booking is accepted!');
+                if(conflict){
+                    console.log('Error: the booking conflicts with existing bookings!');
+                }else{
+                    var orderInfo=buildOrderType(unitInput);
+                    var orderCharge=buildOrderCharge(orderInfo);
+                    details.push(orderCharge);
+                    console.log('Success: the booking is accepted!');
+                }
             } else {
                 console.log("Error: the booking is invalid!");
             }
@@ -108,9 +112,13 @@ function main() {
             var temp=array[4];
             var unitInput={ID, date, time, place,temp,orderType:"cancel"};
             legal = isLegal(unitInput);
-            var cancleCharge=buildCancelCharge(unitInput);
-            if (legal && cancleCharge) {
-                console.log('Success: the booking is accepted!');
+            var cancelCharge=buildCancelCharge(unitInput);
+            if (legal) {
+                if(cancelCharge){
+                    console.log('Success: the booking is accepted!');
+                }else{
+                    console.log('Error: the booking being cancelled does not exist!');
+                }
             } else {
                 console.log("Error: the booking is invalid!");
             }
