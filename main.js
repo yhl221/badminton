@@ -1,4 +1,5 @@
 var scanf = require('scanf');
+var allCharges=require('./resources');
 
 var details =
     [{
@@ -41,6 +42,7 @@ function isConflict(object, objects) {
 
 function main() {
     var init = scanf("%S");
+    console.log(allCharges());
     while (init != "") {
         var array = init.split(" ");
         var ID = array[0];
