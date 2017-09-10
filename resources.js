@@ -11,9 +11,9 @@ function charges() {
         },
         'offDay': {
             items: [
-                {item: "9:00~12:00", unitPrice: 40},
-                {items: "12:00~18:00", unitPrice: 50},
-                {items: "18:00~22:00", unitPrice: 60}
+                {time: "9:00~12:00", unitPrice: 40},
+                {time: "12:00~18:00", unitPrice: 50},
+                {time: "18:00~22:00", unitPrice: 60}
             ],
             discount: 0.25
         }
