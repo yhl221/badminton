@@ -4,17 +4,16 @@ details = [];
 bookCharge = [];
 
 function splitDate(time) {
-    var start=parseInt(time.split("~")[0].split(":"));
-    var end=parseInt(time.split("~")[1].split(":"));
-    return {start,end}
+    var start = parseInt(time.split("~")[0].split(":"));
+    var end = parseInt(time.split("~")[1].split(":"));
+    return {start, end}
 }
 
 function isLegal(object) {
     var year = /^((([0-9]{2})(0[48]|[2468][048]|[13579][26])|(0[48]|[2468][048]|[3579][26])00)-((((0[4,6,9]|11))-((0[1-9]|[1,2][0-9]|30)))|(((0[1,3,5,7,8]|1[0,2]))-((0[1-9]|[1,2][0-9]|3[0,1])))|(02-(0[1-9]|1[0-9]|2[0-9]))))|([0-9]{3}[1-9]|[0-9]{2}[1-9][0-9]{1}|[0-9]{1}[1-9][0-9]{2}|[1-9][0-9]{3})-((((0[4,6,9]|11))-((0[1-9]|[1,2][0-9]|30)))|(((0[1,3,5,7,8]|1[0,2]))-((0[1-9]|[1,2][0-9]|3[0,1])))|(02-(0[1-9]|1[0-9]|2[0-8])))$/;
     var hour = /^((09)|(1[0-9])|(2[0-2])):00~((09)|(1[0-9])|(2[0-2])):00$/;
     var flag = /^[A-D]$/;
-  //  var timeLegal = parseInt(object.time.split("~")[0].split(":")) < parseInt(object.time.split("~")[1].split(":")) ? true : false;
-    var timeLegal=splitDate(object.time).start<splitDate(object.time).end?true:false;
+    var timeLegal = splitDate(object.time).start < splitDate(object.time).end ? true : false;
     if (object.orderType === "Booked"
         && year.test(object.date) && hour.test(object.time) && flag.test(object.place)
         && timeLegal) {
@@ -29,14 +28,14 @@ function isLegal(object) {
 }
 
 function isConflict(object, objects) {
-    var start=splitDate(object.time).start;
-    var end=splitDate(object.time).end;
+    var start = splitDate(object.time).start;
+    var end = splitDate(object.time).end;
     if (objects.length === 0) {
         return false;
     } else {
         for (var i = 0; i < objects.length; i++) {
-            var unitStart=splitDate(objects[i].time).start;
-            var unitEnd=splitDate(objects[i].time).end;
+            var unitStart = splitDate(objects[i].time).start;
+            var unitEnd = splitDate(objects[i].time).end;
             if ((object.place === objects[i].place) &&
                 (((start >= unitStart) && (start <= unitEnd))
                 || ((end >= unitStart) && (end <= unitEnd)))
@@ -60,13 +59,13 @@ function buildOrderType(object) {
 }
 
 function buildOrderCharge(object) {
-    var start=splitDate(object.info.time).start;
-    var end=splitDate(object.info.time).end;
-    var key = object.type,myCharge = 0;
+    var start = splitDate(object.info.time).start;
+    var end = splitDate(object.info.time).end;
+    var key = object.type, myCharge = 0;
     var element = allCharges[key].items;
     for (var i = 0; i < element.length; i++) {
-        var unitStart=splitDate(element[i].time).start;
-        var unitEnd=splitDate(element[i].time).end;
+        var unitStart = splitDate(element[i].time).start;
+        var unitEnd = splitDate(element[i].time).end;
         if ((start >= unitStart) && (end <= unitEnd)) {
             return {order: object, charge: (end - start) * element[i].unitPrice}
         } else if ((start >= unitStart && start <= unitEnd) ||
@@ -90,13 +89,12 @@ function buildCancelCharge(object, charges) {
             return charges;
         }
     }
-
     return false;
 }
 
 
 function sortByPlace(charges) {
-    var newArray = [],place_A = [],place_B = [],place_C = [],place_D = [];
+    var newArray = [], place_A = [], place_B = [], place_C = [], place_D = [];
     for (var i = 0; i < charges.length; i++) {
         switch (charges[i].order.info.place) {
             case 'A':
@@ -137,58 +135,42 @@ function sortByTime(placeSort) {
 
 function buildSubtotal(timeSort) {
     var total = 0;
-    for (var i = 0; i < timeSort.length; i++) {
+    timeSort.map((element)=> {
         var subtotal = 0;
-        for (var j = 0; j < timeSort[i].message.length; j++) {
-            subtotal += timeSort[i].message[j].charge
-        }
+        element.message.map((element)=> {
+            subtotal += element.charge
+        });
         total += subtotal;
-        timeSort[i].subtotal = subtotal;
-    }
+        element.subtotal = subtotal;
+    });
     return {detail: timeSort, total: total};
 }
 
 
 function buildOutput(subtotal) {
-    var outputString = `
-收入汇总
----
-`;
-    for (var i = 0; i < subtotal.detail.length; i++) {
-        var updateLength=subtotal.detail[i].message.length ==0
-            ? 1:subtotal.detail[i].message.length;
-        for (var j = 0; j<updateLength; j++) {
-           if(updateLength === 1){
-               outputString+= `场地：${subtotal.detail[i].key}`;
-           }else {
-               var unitOrder = subtotal.detail[i].message[j].order.info;
-               if(unitOrder.isCancel){
-                   outputString += `场地：${subtotal.detail[i].key}
-${unitOrder.date} ${unitOrder.time} 违约金 ${subtotal.detail[i].message[j].charge}元`;
-               }else{
-                   outputString += `场地：${subtotal.detail[i].key}
-${unitOrder.date} ${unitOrder.time} ${subtotal.detail[i].message[j].charge}元`;
-               }
-           }
-        }
-        outputString += `
-小计:${subtotal.detail[i].subtotal}元
-        \n`;
-    }
-
-    return `${outputString}---
-总计：${subtotal.total}`;
+    var outputString = `\n收入汇总\n---\n`;
+    subtotal.detail.map((item)=> {
+        outputString += `场地：${item.key}`;
+        item.message.map((element)=> {
+            outputString += `\n${element.order.info.date} ${element.order.info.time} `;
+            if (element.order.info.isCancel) {
+                outputString += `违约金 ${element.charge}元`;
+            } else {
+                outputString += `${element.charge}元`;
+            }
+        });
+        outputString += `\n小计:${item.subtotal}元\n\n`;
+    });
+    return `${outputString}---\n总计：${subtotal.total}元`;
 }
+
 
 function main() {
     var init = scanf("%S");
     while (init != "") {
         var array = init.split(" ");
-        var ID = array[0];
-        var date = array[1];
-        var time = array[2];
-        var place = array[3];
-        var legal,conflict;
+        var ID = array[0], date = array[1], time = array[2], place = array[3];
+        var legal, conflict;
         if (array.length == 4) {
             var unitInput = {ID, date, time, place, orderType: "Booked", isCancel: false};
             legal = isLegal(unitInput);
