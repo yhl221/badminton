@@ -4,9 +4,12 @@ details = [];
 bookCharge = [];
 
 function splitDate(time) {
-    var start = parseInt(time.split("~")[0].split(":"));
-    var end = parseInt(time.split("~")[1].split(":"));
-    return {start, end}
+    if (time) {
+        var start = parseInt(time.split("~")[0].split(":"));
+        var end = parseInt(time.split("~")[1].split(":"));
+        return {start, end}
+    }
+    return false;
 }
 
 function isLegal(object) {
@@ -38,7 +41,7 @@ function isConflict(object, objects) {
             var unitEnd = splitDate(objects[i].time).end;
             if ((object.place === objects[i].place) &&
                 (((start >= unitStart) && (start <= unitEnd))
-                || ((end >= unitStart) && (end <= unitEnd)))
+                || (start >= unitEnd || end <= unitStart))
                 && objects[i].isCancel == false) {
                 return true;
             } else {
@@ -62,18 +65,18 @@ function buildOrderCharge(object) {
     var start = splitDate(object.info.time).start;
     var end = splitDate(object.info.time).end;
     var key = object.type, myCharge = 0;
-    var element = allCharges[key].items;
-    for (var i = 0; i < element.length; i++) {
-        var unitStart = splitDate(element[i].time).start;
-        var unitEnd = splitDate(element[i].time).end;
+    allCharges[key].items.map((element)=> {
+        var unitStart = splitDate(element.time).start;
+        var unitEnd = splitDate(element.time).end;
         if ((start >= unitStart) && (end <= unitEnd)) {
-            return {order: object, charge: (end - start) * element[i].unitPrice}
-        } else if ((start >= unitStart && start <= unitEnd) ||
-            (end >= unitStart && end <= unitEnd)) {
-            var flag = start >= unitStart ? start : end;
-            myCharge += (flag - unitStart) * element[i].unitPrice;
+            myCharge += (end - start) * element.unitPrice;
+        } else if ((start >= unitStart && start <= unitEnd) && end >= unitEnd) {
+            myCharge += (unitEnd - start) * element.unitPrice;
+            start = unitEnd;
+        } else if ((start >= unitStart && start <= unitEnd) && end <= unitEnd) {
+            myCharge += (end - unitStart) * element.unitPrice
         }
-    }
+    });
     return {order: object, charge: myCharge};
 }
 
@@ -124,8 +127,8 @@ function sortByTime(placeSort) {
     for (var i = 0; i < placeSort.length; i++) {
         if (placeSort[i].message.length != 0) {
             placeSort[i].message.sort((a, b)=> {
-                return new Date(`${b.order.info.date} ${b.order.info.time}`)
-                    - new Date(`${a.order.info.date} ${a.order.info.time}`);
+                return new Date(`${a.order.info.date} ${a.order.info.time}`)
+                    - new Date(`${b.order.info.date} ${b.order.info.time}`);
             });
         }
     }
@@ -175,6 +178,7 @@ function main() {
             var unitInput = {ID, date, time, place, orderType: "Booked", isCancel: false};
             legal = isLegal(unitInput);
             conflict = isConflict(unitInput, details);
+            console.log(legal, conflict);
             if (legal) {
                 if (conflict) {
                     console.log('Error: the booking conflicts with existing bookings!');
@@ -184,6 +188,11 @@ function main() {
                     var orderCharge = buildOrderCharge(orderInfo);
                     bookCharge.push(orderCharge);
                     console.log('Success: the booking is accepted!');
+                    var placeSort = sortByPlace(bookCharge);
+                    var sortTime = sortByTime(placeSort);
+                    var subtotal = buildSubtotal(sortTime);
+                    var output = buildOutput(subtotal);
+                    console.log(output);
                 }
             } else {
                 console.log("Error: the booking is invalid!");
@@ -208,12 +217,7 @@ function main() {
         }
         init = scanf("%S");
     }
-
-    var placeSort = sortByPlace(bookCharge);
-    var sortTime = sortByTime(placeSort);
-    var subtotal = buildSubtotal(sortTime);
-    var output = buildOutput(subtotal);
-    console.log(output);
+    close();
 }
 
 main();
