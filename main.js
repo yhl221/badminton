@@ -107,16 +107,21 @@ function sortByPlace(charges) {
 
 
 function sortByTime(placeSort) {
-
+   var afterSortTime=[];
     for (var i = 0; i < placeSort.length; i++) {
         if (placeSort[i].message.length != 0) {
-            placeSort[i].message.sort((a, b)=> {
-                return new Date(`${b.order.info.date} ${b.order.info.time}`) - new Date(`${a.order.info.date} ${a.order.info.time}`);
+            var  byDate = placeSort[i].message.slice(0);
+            byDate.sort(function(a,b) {
+                var date_a=`${a.order.info.date} ${a.order.info.time.slice(0,5)}`;
+                var date_b=`${b.order.info.date} ${b.order.info.time.slice(0,5)}`;
+                return new Date(date_a).getTime()-new Date(date_b).getTime();
             });
+            afterSortTime.push({key:placeSort[i].key,message:byDate});
+        }else{
+            afterSortTime.push(placeSort[i]);
         }
-
-        return placeSort
     }
+    return afterSortTime;
 }
 
 function buildSubtotal(timeSort) {
