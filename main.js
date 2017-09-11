@@ -4,51 +4,33 @@ details = [];
 bookCharge = [];
 
 function splitDate(time) {
-    if (time) {
-        var start = parseInt(time.split("~")[0].split(":"));
-        var end = parseInt(time.split("~")[1].split(":"));
-        return {start, end}
-    }
-    return false;
+    var start = parseInt(time.slice(0, 2));
+    var end = parseInt(time.slice(6, 8));
+    return {start, end};
 }
 
-function isLegal(object) {
+function isLegal(object, length) {
     var year = /^((([0-9]{2})(0[48]|[2468][048]|[13579][26])|(0[48]|[2468][048]|[3579][26])00)-((((0[4,6,9]|11))-((0[1-9]|[1,2][0-9]|30)))|(((0[1,3,5,7,8]|1[0,2]))-((0[1-9]|[1,2][0-9]|3[0,1])))|(02-(0[1-9]|1[0-9]|2[0-9]))))|([0-9]{3}[1-9]|[0-9]{2}[1-9][0-9]{1}|[0-9]{1}[1-9][0-9]{2}|[1-9][0-9]{3})-((((0[4,6,9]|11))-((0[1-9]|[1,2][0-9]|30)))|(((0[1,3,5,7,8]|1[0,2]))-((0[1-9]|[1,2][0-9]|3[0,1])))|(02-(0[1-9]|1[0-9]|2[0-8])))$/;
     var hour = /^((09)|(1[0-9])|(2[0-2])):00~((09)|(1[0-9])|(2[0-2])):00$/;
     var flag = /^[A-D]$/;
     var timeLegal = splitDate(object.time).start < splitDate(object.time).end ? true : false;
-    if (object.orderType === "Booked"
-        && year.test(object.date) && hour.test(object.time) && flag.test(object.place)
-        && timeLegal) {
-        return true;
-    } else if (object.orderType === "cancel"
-        && year.test(object.date) && hour.test(object.time) && flag.test(object.place) && object.temp == 'C'
-        && timeLegal) {
-        return true;
-    } else {
-        return false;
+    var judge = (year.test(object.date) && hour.test(object.time) && flag.test(object.place) && timeLegal);
+    var cancelTag = (object.temp == 'C');
+    return length === 4 ? judge : (judge && cancelTag);
+}
+
+function mapObjects(element, objects) {
+    for (var i = 0; i < objects.length; i++) {
+        var unitStart = splitDate(objects[i].time).start;
+        var unitEnd = splitDate(objects[i].time).end;
+        return ( (element.start <= unitEnd || element.end <= unitStart) && objects[i].isCancel == false) == true;
     }
 }
 
 function isConflict(object, objects) {
     var start = splitDate(object.time).start;
     var end = splitDate(object.time).end;
-    if (objects.length === 0) {
-        return false;
-    } else {
-        for (var i = 0; i < objects.length; i++) {
-            var unitStart = splitDate(objects[i].time).start;
-            var unitEnd = splitDate(objects[i].time).end;
-            if ((object.place === objects[i].place) &&
-                (((start >= unitStart) && (start <= unitEnd))
-                || (start >= unitEnd || end <= unitStart))
-                && objects[i].isCancel == false) {
-                return true;
-            } else {
-                return false;
-            }
-        }
-    }
+    return objects.length === 0 ? false : mapObjects({start, end}, objects);
 }
 
 function buildOrderType(object) {
@@ -116,25 +98,26 @@ function sortByPlace(charges) {
                 break;
         }
     }
-    newArray.push({key: 'A', message: place_A}, {key: 'B', message: place_B},
-        {key: 'C', message: place_C}, {key: 'D', message: place_D});
-
+    newArray.push({key: 'A', message: place_A}, {key: 'B', message: place_B}, {key: 'C', message: place_C}, {
+        key: 'D',
+        message: place_D
+    });
     return newArray;
 }
 
 
 function sortByTime(placeSort) {
+
     for (var i = 0; i < placeSort.length; i++) {
         if (placeSort[i].message.length != 0) {
             placeSort[i].message.sort((a, b)=> {
-                return new Date(`${a.order.info.date} ${a.order.info.time}`)
-                    - new Date(`${b.order.info.date} ${b.order.info.time}`);
+                return new Date(`${b.order.info.date} ${b.order.info.time}`) - new Date(`${a.order.info.date} ${a.order.info.time}`);
             });
         }
-    }
-    return placeSort
-}
 
+        return placeSort
+    }
+}
 
 function buildSubtotal(timeSort) {
     var total = 0;
@@ -167,57 +150,51 @@ function buildOutput(subtotal) {
     return `${outputString}---\n总计：${subtotal.total}元`;
 }
 
+function detailOrder(orderInput) {
+    details.push(orderInput);
+    var orderInfo = buildOrderType(orderInput);
+    var orderCharge = buildOrderCharge(orderInfo);
+    bookCharge.push(orderCharge);
+    return 'Success: the booking is accepted!';
+}
+
+function orderPlace(orderInput) {
+    var legal = isLegal(orderInput, 4);
+    var conflict = isConflict(orderInput, details);
+    return legal == true ?
+        (conflict == true ? 'Error: the booking conflicts with existing bookings!' : detailOrder(orderInput))
+        : 'Error: the booking is invalid!';
+}
+
+function cancelPlace(cancelInput) {
+    var legal = isLegal(cancelInput, 5);
+    var cancelCharge = buildCancelCharge(cancelInput, bookCharge);
+    var flag = legal == true ? (cancelCharge == false ? 'Error: the booking being cancelled does not exist!' : true) : 'Error: the booking is invalid!';
+    if (flag === true) {
+        bookCharge = cancelCharge;
+        return 'Success: the booking is accepted!'
+    } else {
+        return flag;
+    }
+}
 
 function main() {
     var init = scanf("%S");
     while (init != "") {
         var array = init.split(" ");
-        var ID = array[0], date = array[1], time = array[2], place = array[3];
-        var legal, conflict;
-        if (array.length == 4) {
-            var unitInput = {ID, date, time, place, orderType: "Booked", isCancel: false};
-            legal = isLegal(unitInput);
-            conflict = isConflict(unitInput, details);
-            console.log(legal, conflict);
-            if (legal) {
-                if (conflict) {
-                    console.log('Error: the booking conflicts with existing bookings!');
-                } else {
-                    details.push(unitInput);
-                    var orderInfo = buildOrderType(unitInput);
-                    var orderCharge = buildOrderCharge(orderInfo);
-                    bookCharge.push(orderCharge);
-                    console.log('Success: the booking is accepted!');
-                    var placeSort = sortByPlace(bookCharge);
-                    var sortTime = sortByTime(placeSort);
-                    var subtotal = buildSubtotal(sortTime);
-                    var output = buildOutput(subtotal);
-                    console.log(output);
-                }
-            } else {
-                console.log("Error: the booking is invalid!");
-            }
-        } else if (array.length == 5) {
-            var temp = array[4];
-            var unitInput = {ID, date, time, place, temp, orderType: "cancel"};
-            legal = isLegal(unitInput);
-            var cancelCharge = buildCancelCharge(unitInput, bookCharge);
-            if (legal) {
-                if (cancelCharge) {
-                    bookCharge = cancelCharge;
-                    console.log('Success: the booking is accepted!');
-                } else {
-                    console.log('Error: the booking being cancelled does not exist!');
-                }
-            } else {
-                console.log("Error: the booking is invalid!");
-            }
-        } else {
-            console.log("Error: the booking is invalid!");
-        }
+        var input = array.length == 4 ?
+        {ID: array[0], date: array[1], time: array[2], place: array[3], isCancel: false}
+            : {ID: array[0], date: array[1], time: array[2], place: array[3], temp: array[4]};
+        var warning = array.length === 4 ? orderPlace(input) : (array.length === 5 ? cancelPlace(input) : "Error: the booking is invalid!");
+        console.log(warning);
         init = scanf("%S");
     }
-    close();
+    var placeSort = sortByPlace(bookCharge);
+    var sortTime = sortByTime(placeSort);
+    var subtotal = buildSubtotal(sortTime);
+    var output = buildOutput(subtotal);
+    console.log(output);
 }
 
 main();
+
